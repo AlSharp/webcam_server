@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>IMAC Web Cam Server</title>
+</head>
+<body>
+  <h1>IMAC WEB CAMERA</h1>
+  <div>
+    <div style="display: inline-block; margin-right: 4px">Live stream</div>
+    <div
+      id="led"
+      style="
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background-color: red;
+        border-radius: 5px;
+      "
+    ></div>
+    <div id="viewers" style="display: inline-block;">0 watching</div>
+  </div>
+  <div id="memoryUsage">Process is using ... MB</div>
+  <div id="temperature">CPU temperature is ... &#x2103;</div>
+  <img
+    id="image"
+    style="
+      width: 100%;
+      max-width: 640px;
+      height: auto;
+      border-radius: 10px;
+    "
+  >
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io.connect('/');
+
+    const utf8decoder = new TextDecoder();
+
+    let viewers_count = 0;
+
+    const led = document.getElementById('led');
+    const viewers = document.getElementById('viewers');
+    const image = document.getElementById('image');
+    const memoryUsage = document.getElementById('memoryUsage');
+    const temperature = document.getElementById('temperature');
+
+    socket.on('connect', () => {
+      led.style.backgroundColor = 'green';
+    });
+
+    socket.on('disconnect', () => {
+      led.style.backgroundColor = 'red';
+    })
+
+    socket.on('viewers', data => {
+      viewers.textContent = data + ' watching';
+    })
+
+    socket.on('image', data => {
+      image.src = `data:image/jpeg;base64,${data}`;
+    })
+    socket.on('memoryUsed', data => {
+      memoryUsage.textContent = 'Process is using ' + (data / 1000 / 1000).toFixed(3) + ' MB';
+    });
+    socket.on('temperature', data => {
+      const temp = (utf8decoder.decode(data) / 1000).toFixed(2);
+      temperature.textContent = 'CPU temperature is ' + temp + ' \u2103'
+    })
+  </script>
+</body>
+</html>
