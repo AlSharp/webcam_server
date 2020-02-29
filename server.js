@@ -2,29 +2,23 @@ const path = require('path');
 const {spawn} = require('child_process');
 const app = require('express')();
 const server = require('http').createServer(app);
-const io = require('socket.io')(server);
+const io = require('socket.io')(server, {
+  httpCompression: true
+});
 const cv = require('opencv4nodejs');
 
 const showUsedMemory = () => 
   process.memoryUsage().heapUsed;
 
-  if (process.argv[2] === 'with-ngrok') {
-    const ngrok = require('ngrok');
-    (async function() {
-      const url = await ngrok.connect(5000);
-      console.log(url);
-    })();
-  }
-
 const wCap= new cv.VideoCapture(0);
-const FPS = 12;
-wCap.set(cv.CAP_PROP_FRAME_WIDTH, 640);
-wCap.set(cv.CAP_PROP_FRAME_HEIGHT, 360);
-//640x360
+const FPS = 15;
+wCap.set(cv.CAP_PROP_FRAME_WIDTH, 320);
+wCap.set(cv.CAP_PROP_FRAME_HEIGHT, 240);
 
 server.listen(5000);
 
 app.use('/', (req, res) => {
+  console.log(req.query.sessionId);
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
