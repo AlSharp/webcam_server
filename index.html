@@ -20,7 +20,6 @@
         border-radius: 5px;
       "
     ></div>
-    <div id="viewers" style="display: inline-block;">0 watching</div>
   </div>
   <div id="memoryUsage">Process is using ... MB</div>
   <div id="temperature">CPU temperature is ... &#x2103;</div>
@@ -35,14 +34,20 @@
   >
   <script src="/socket.io/socket.io.js"></script>
   <script>
+    window.addEventListener('beforeunload', event => {
+      const answer = window.confirm('You will be logged out from both pages. do you really want to leave?');
+      if (answer) {
+        window.alert('leave');
+      } else {
+        window.alert ('stay');
+      }
+    })
+
     const socket = io.connect('/');
 
     const utf8decoder = new TextDecoder();
 
-    let viewers_count = 0;
-
     const led = document.getElementById('led');
-    const viewers = document.getElementById('viewers');
     const image = document.getElementById('image');
     const memoryUsage = document.getElementById('memoryUsage');
     const temperature = document.getElementById('temperature');
@@ -53,10 +58,6 @@
 
     socket.on('disconnect', () => {
       led.style.backgroundColor = 'red';
-    })
-
-    socket.on('viewers', data => {
-      viewers.textContent = data + ' watching';
     })
 
     socket.on('image', data => {
