@@ -43,7 +43,7 @@
       }
     })
 
-    const socket = io.connect('/');
+    const socket = io.connect('/webcam');
 
     const utf8decoder = new TextDecoder();
 
@@ -69,6 +69,10 @@
     socket.on('temperature', data => {
       const temp = (utf8decoder.decode(data) / 1000).toFixed(2);
       temperature.textContent = 'CPU temperature is ' + temp + ' \u2103'
+    });
+
+    socket.on('endSession', () => {
+      window.close();
     })
   </script>
 </body>

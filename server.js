@@ -1,4 +1,3 @@
-const path = require('path');
 const {spawn} = require('child_process');
 const app = require('express')();
 const server = require('http').createServer(app);
@@ -9,7 +8,7 @@ const io = require('socket.io')(server, {
 });
 const cv = require('opencv4nodejs');
 
-const {getSessionStatus, forceLogout} = require('./api');
+const {forceLogout} = require('./api');
 
 const showUsedMemory = () => 
   process.memoryUsage().heapUsed;
@@ -22,68 +21,67 @@ wCap.set(cv.CAP_PROP_FRAME_HEIGHT, 240);
 server.listen(5000);
 
 const memStore = {
-  sessionId: null
+  sessionId: null,
+  socketId: null
 }
 
-app.use('/', async (req, res) => {
-  if (req.query) {
-    const json = JSON.parse(await getSessionStatus(req.query.sessionId));
-    if (json.status) {
-      memStore.sessionId = req.query.sessionId;
-      res.sendFile(path.join(__dirname, 'index.html'));
-    } else {
-      res.end('Did not find webcam session. Please log in');
-    }
-  }
-});
+const workers = {
+  webcamInterval: null,
+  memoryUsedInterval: null,
+  temperature: null
+}
 
-let webcamInterval = null;
-let memoryUsedInterval = null;
-let temperature = null;
+require('./routing')(app, io, memStore);
 
-io.on('connect', socket => {
-  webcamInterval = setInterval(() => {
-    console.log('web cam capture');
-    let frame = wCap.read();
-    if (frame.empty) {
-      wCap.reset();
-      frame = wCap.read();
-    }
-    const image = cv.imencode('.jpg', frame).toString('base64');
-    io.emit('image', image);
-  }, 1000 / FPS);
-  
-  memoryUsedInterval = setInterval(() => {
-    const memoryUsed = showUsedMemory();
-    io.emit('memoryUsed', memoryUsed);
-  }, 500);
-  
-  temperature = spawn('./cpu_temp');
-  
-  temperature.stdout.on('data', data => {
-    io.emit('temperature', data);
-  });
-  
-  temperature.stderr.on('data', data => {
-    console.log(data);
-  })
-  
-  temperature.on('close', code => console.log('temperature script exited with code ', code));
+io.of('webcam').on('connect', socket => {
+  if (!memStore.socketId) {
+    memStore.socketId = socket.id;
 
-  socket.on('disconnect', reason => {
-    if (reason === 'transport close') {
-      forceLogout(memStore.sessionId)
-        .then(res => {
-          if (res.error) {
-            console.log(res.error);
-          } else {
+    workers.webcamInterval = setInterval(() => {
+      let frame = wCap.read();
+      if (frame.empty) {
+        wCap.reset();
+        frame = wCap.read();
+      }
+      const image = cv.imencode('.jpg', frame).toString('base64');
+      socket.emit('image', image);
+    }, 1000 / FPS);
+    
+    workers.memoryUsedInterval = setInterval(() => {
+      const memoryUsed = showUsedMemory();
+      socket.emit('memoryUsed', memoryUsed);
+    }, 500);
+    
+    workers.temperature = spawn('./cpu_temp');
+    
+    workers.temperature.stdout.on('data', data => {
+      socket.emit('temperature', data);
+    });
+    
+    workers.temperature.stderr.on('data', data => {
+      console.log(data);
+    })
+    
+    workers.temperature.on('close', code => console.log('temperature script exited with code ', code));
+  
+    socket.on('disconnect', async reason => {
+      if (reason === 'transport close' && memStore.sessionId) {
+        try {
+          const json = await forceLogout(memStore.sessionId);
+          if (json.status) {
             memStore.sessionId = null;
+          } else {
+            console.log(json.error);
           }
-        })
-        .catch(error => console.log(error))
-    }
-    clearInterval(webcamInterval);
-    clearInterval(memoryUsedInterval);
-    temperature.kill();
-  })
+        }
+        catch(error) {
+          console.log(error);
+        }
+      }
+      clearInterval(workers.webcamInterval);
+      clearInterval(workers.memoryUsedInterval);
+      workers.temperature.kill();
+      memStore.socketId = null;
+    })
+  }
 });

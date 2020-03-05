@@ -1,13 +1,13 @@
 const http = require('http');
 
 module.exports = {
-  getSessionStatus: sessionId => {
+  getSessionStatus: (sessionId, event) => {
     return new Promise((resolve, reject) => {
       const options = {
         protocol: 'http:',
-        host: 'imac-dev',
+        host: 'imac-dev.local',
         port: 5000,
-        path: `/api/webcam/verify?sessionId=${sessionId}`,
+        path: `/api/webcam/verify?sessionId=${sessionId}&event=${event}`,
         method: 'GET',
         timeout: 3000
       };
@@ -16,7 +16,7 @@ module.exports = {
         let data = '';
         res.setEncoding('utf8');
         res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve(data));
+        res.on('end', () => resolve(JSON.parse(data)));
       });
 
       req.on('error', error => reject(error));
@@ -31,7 +31,7 @@ module.exports = {
     return new Promise((resolve, reject) => {
       const options = {
         protocol: 'http:',
-        host: 'imac-dev',
+        host: 'imac-dev.local',
         port: 5000,
         path: `/api/webcam/force_logout`,
         method: 'POST',
@@ -45,7 +45,7 @@ module.exports = {
         let data = '';
         res.setEncoding('utf8');
         res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve(data));
+        res.on('end', () => resolve(JSON.parse(data)));
       });
 
       req.on('error', error => reject(error));
