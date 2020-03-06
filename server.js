@@ -34,6 +34,7 @@ const workers = {
 require('./routing')(app, io, memStore);
 
 io.of('webcam').on('connect', socket => {
+  console.log('connect socket with id ', socket.id);
   if (!memStore.socketId) {
     memStore.socketId = socket.id;
 
@@ -65,7 +66,10 @@ io.of('webcam').on('connect', socket => {
     workers.temperature.on('close', code => console.log('temperature script exited with code ', code));
   
     socket.on('disconnect', async reason => {
+      console.log('reason: ', reason);
+      console.log('memStore: ', memStore);
       if (reason === 'transport close' && memStore.sessionId) {
+        console.log('FORCE LOGOUT')
         try {
           const json = await forceLogout(memStore.sessionId);
           if (json.status) {

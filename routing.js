@@ -21,6 +21,7 @@ module.exports = (app, io, memStore) => {
   app.use(bodyParser.json());
 
   app.get('/', async (req, res) => {
+    console.log(memStore);
     if (memStore.sessionId || memStore.socketId) {
       res.end('Webcam is busy');
     } else {

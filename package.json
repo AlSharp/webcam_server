@@ -4,8 +4,9 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "NODE_ENV=development node server.js",
     "demo": "concurrently \"ngrok http -subdomain=imacwebcamlive 5000\" \"node server.js\"",
+    "demo-live": "concurrently \"ngrok http -subdomain=imacwebcamlive 5000\" \"node server.js --demo\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

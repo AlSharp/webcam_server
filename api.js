@@ -1,11 +1,12 @@
 const http = require('http');
+const {getImacHostName} = require('./utils');
 
 module.exports = {
   getSessionStatus: (sessionId, event) => {
     return new Promise((resolve, reject) => {
       const options = {
         protocol: 'http:',
-        host: 'imac-dev.local',
+        host: getImacHostName(),
         port: 5000,
         path: `/api/webcam/verify?sessionId=${sessionId}&event=${event}`,
         method: 'GET',
@@ -31,7 +32,7 @@ module.exports = {
     return new Promise((resolve, reject) => {
       const options = {
         protocol: 'http:',
-        host: 'imac-dev.local',
+        host: getImacHostName(),
         port: 5000,
         path: `/api/webcam/force_logout`,
         method: 'POST',
