@@ -1,3 +1,5 @@
+
+const express = require('express');
 const path = require('path');
 const {getSessionStatus} = require('./api');
 const WHITELISTED_DOMAINS = require('./config').whitelistedDomains;
@@ -20,6 +22,8 @@ module.exports = (app, io, memStore) => {
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
 
+  app.use('/', express.static(__dirname + '/webcam_ui_build'));
+
   app.get('/', async (req, res) => {
     console.log(memStore);
     if (memStore.sessionId || memStore.socketId) {
@@ -29,13 +33,19 @@ module.exports = (app, io, memStore) => {
         const json = await getSessionStatus(req.query.sessionId, 'open');
         if (json.status) {
           memStore.sessionId = req.query.sessionId;
-          res.sendFile(path.join(__dirname, 'index.html'));
+          res.sendFile(path.join(__dirname, 'webcam_ui_build', 'index.html'));
         } else {
           res.end('Did not find webcam session. Please log in');
         }
       }
     }
   });
+
+  app.use('/authorize', express.static(__dirname + '/auth_app_build'));
+
+  app.get('/authorize', (req, res) => {
+    res.sendFile(path.join(__dirname, 'auth_app_build', 'index.html'));
+  })
 
   app.post('/api/end_session', async (req, res) => {
     const {sessionId} = req.body;

@@ -1,0 +1,28 @@
+{
+  "name": "webcam_server_auth_app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack-dev-server --open --config webpack.dev.js --port=3200",
+    "demo": "concurrently \"ngrok http -subdomain=imacwebcamliveauth 3200\" \"webpack-dev-server --open --config webpack.dev.demo.js --port=3200\"",
+    "build": "webpack --config webpack.production.js",
+    "clean": "rm -rf ../auth_app_build"
+  },
+  "author": "Albert Sharapov",
+  "license": "MIT",
+  "dependencies": {
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/preset-react": "^7.12.10",
+    "babel-loader": "^8.2.2",
+    "html-webpack-plugin": "^4.5.0",
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12",
+    "webpack-dev-server": "^3.8.0",
+    "webpack-merge": "^5.7.0"
+  }
+}

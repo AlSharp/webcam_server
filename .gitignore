@@ -1,2 +1,9 @@
 /node_modules
 config.js
+/secrets
+/webcam_ui/node_modules
+/webcam_ui_build
+/webcam_ui/src/secrets
+/auth_app/node_modules
+/auth_app_build
+/auth_app/src/secrets

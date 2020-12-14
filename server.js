@@ -1,69 +1,45 @@
-const {spawn} = require('child_process');
 const app = require('express')();
-const server = require('http').createServer(app);
+const http = require('http')
+const server = http.createServer(app);
 const io = require('socket.io')(server, {
-  httpCompression: true,
-  pingInterval: 3000,
-  pingTimeout: 2000
+  pingInterval: 5000,
+  pingTimeout: 3000,
+  perMessageDeflate: false
 });
-const cv = require('opencv4nodejs');
 
 const {forceLogout} = require('./api');
+
+server.listen(5100);
 
 const showUsedMemory = () => 
   process.memoryUsage().heapUsed;
 
-const wCap= new cv.VideoCapture(0);
-const FPS = 15;
-wCap.set(cv.CAP_PROP_FRAME_WIDTH, 320);
-wCap.set(cv.CAP_PROP_FRAME_HEIGHT, 240);
-
-server.listen(5000);
-
 const memStore = {
   sessionId: null,
-  socketId: null
-}
+  socketId: null,
+  code: null,
+  accessToken: null,
+  refreshToken: null
+};
 
 const workers = {
-  webcamInterval: null,
   memoryUsedInterval: null,
-  temperature: null
-}
+};
 
-require('./routing')(app, io, memStore);
+const {youtubeClient, googleApiRouting} = require('./googleapi')(memStore);
+
+require('./routing')(app, io, memStore, youtubeClient);
+googleApiRouting(app, io, memStore);
 
 io.of('webcam').on('connect', socket => {
   console.log('connect socket with id ', socket.id);
   if (!memStore.socketId) {
     memStore.socketId = socket.id;
-
-    workers.webcamInterval = setInterval(() => {
-      let frame = wCap.read();
-      if (frame.empty) {
-        wCap.reset();
-        frame = wCap.read();
-      }
-      const image = cv.imencode('.jpg', frame).toString('base64');
-      socket.emit('image', image);
-    }, 1000 / FPS);
     
     workers.memoryUsedInterval = setInterval(() => {
       const memoryUsed = showUsedMemory();
       socket.emit('memoryUsed', memoryUsed);
     }, 500);
-    
-    workers.temperature = spawn('./cpu_temp');
-    
-    workers.temperature.stdout.on('data', data => {
-      socket.emit('temperature', data);
-    });
-    
-    workers.temperature.stderr.on('data', data => {
-      console.log(data);
-    })
-    
-    workers.temperature.on('close', code => console.log('temperature script exited with code ', code));
   
     socket.on('disconnect', async reason => {
       console.log('reason: ', reason);
@@ -82,9 +58,7 @@ io.of('webcam').on('connect', socket => {
           console.log(error);
         }
       }
-      clearInterval(workers.webcamInterval);
       clearInterval(workers.memoryUsedInterval);
-      workers.temperature.kill();
       memStore.socketId = null;
     })
   }

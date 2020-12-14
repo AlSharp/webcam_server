@@ -4,9 +4,9 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "NODE_ENV=development node server.js",
-    "demo": "concurrently \"ngrok http -subdomain=imacwebcamlive 5000\" \"node server.js\"",
-    "demo-live": "concurrently \"ngrok http -subdomain=imacwebcamlive 5000\" \"node server.js --demo\"",
+    "start": "NODE_ENV=development nodemon server.js",
+    "demo": "concurrently \"ngrok http -subdomain=imacwebcamlive 5100\" \"nodemon server.js\"",
+    "demo-live": "concurrently \"ngrok http -subdomain=imacwebcamlive 5100\" \"node server.js --demo\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -15,7 +15,10 @@
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "opencv4nodejs": "^5.5.0",
+    "googleapis": "^66.0.0",
     "socket.io": "^2.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
   }
 }

@@ -2,5 +2,6 @@
 
 - express
 - socket.io
-- opencv4node.js
+- Youtube LiveStreaming API
 - ngrok
+- react
