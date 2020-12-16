@@ -7,7 +7,7 @@ module.exports = (env, argv) => {
   return merge(common, {
     mode: "production",
     output: {
-      publicPath: "/",
+      publicPath: "/webcam_ui",
       path: path.join(__dirname, '..', 'webcam_ui_build')
     },
     plugins: [

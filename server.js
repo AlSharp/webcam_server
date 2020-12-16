@@ -9,37 +9,68 @@ const io = require('socket.io')(server, {
 
 const {forceLogout} = require('./api');
 
-server.listen(5100);
+const {getWebcamStatus} = require('./utils');
 
-const showUsedMemory = () => 
-  process.memoryUsage().heapUsed;
+const {obsAddress, obsPassword} = require('./config');
+
+server.listen(5100);
 
 const memStore = {
   sessionId: null,
   socketId: null,
   code: null,
   accessToken: null,
-  refreshToken: null
+  refreshToken: null,
+  authorized: false,
+  liveBroadcastId: null,
+  OBSWebSocketConnected: false,
+  OBSWebSocketAuthenticated: false,
+  streaming: false
 };
 
-const workers = {
-  memoryUsedInterval: null,
-};
+const OBSWebSocket = require('obs-websocket-js');
 
-const {youtubeClient, googleApiRouting} = require('./googleapi')(memStore);
+const obs = new OBSWebSocket();
 
-require('./routing')(app, io, memStore, youtubeClient);
-googleApiRouting(app, io, memStore);
+obs.connect({
+  address: obsAddress,
+  password: obsPassword
+})
+  .catch(error => console.log(error));
+
+obs.on('ConnectionOpened', () => {
+  memStore.OBSWebSocketConnected = true;
+  console.log('obs connected');
+  io.of('webcam').emit('webcamStatus', getWebcamStatus(memStore))
+});
+
+obs.on('ConnectionClosed', () => {
+  memStore.OBSWebSocketConnected = false;
+  io.of('webcam').emit('webcamStatus', getWebcamStatus(memStore));
+});
+
+obs.on('AuthenticationFailure', data => {
+  console.log('OBS Auth Failed');
+  console.log(data);
+  memStore.OBSWebSocketAuthenticated = false;
+  io.of('webcam').emit('webcamStatus', getWebcamStatus(memStore));
+});
+
+obs.on('AuthenticationSuccess', data => {
+  console.log('OBS Auth Ok');
+  memStore.OBSWebSocketAuthenticated = true;
+  io.of('webcam').emit('webcamStatus', getWebcamStatus(memStore));
+});
+
+const {oauth2Client, youtubeClient} = require('./youtube-client')(memStore, io);
+
+require('./routing')(app, io, memStore, youtubeClient, obs);
+require('./googleapi-routing')(app, io, memStore, oauth2Client, youtubeClient, obs);
 
 io.of('webcam').on('connect', socket => {
   console.log('connect socket with id ', socket.id);
   if (!memStore.socketId) {
     memStore.socketId = socket.id;
-    
-    workers.memoryUsedInterval = setInterval(() => {
-      const memoryUsed = showUsedMemory();
-      socket.emit('memoryUsed', memoryUsed);
-    }, 500);
   
     socket.on('disconnect', async reason => {
       console.log('reason: ', reason);
@@ -58,7 +89,6 @@ io.of('webcam').on('connect', socket => {
           console.log(error);
         }
       }
-      clearInterval(workers.memoryUsedInterval);
       memStore.socketId = null;
     })
   }

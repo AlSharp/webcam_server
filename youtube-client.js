@@ -1,7 +1,8 @@
 const {google} = require('googleapis');
 const {CLIENT_ID, CLIENT_SECRET} = require('./secrets/oauth2');
+const {getWebcamStatus} = require('./utils');
 
-module.exports = memStore => {
+module.exports = (memStore, io) => {
   const oauth2Client = new google.auth.OAuth2(
     CLIENT_ID,
     CLIENT_SECRET,
@@ -24,6 +25,8 @@ module.exports = memStore => {
       oauth2Client.setCredentials(tokens);
     }
     memStore.accessToken = tokens.access_token;
+    memStore.authorized = true;
+    io.of('webcam').emit('webcamStatus', getWebcamStatus(memStore));
   });
 
   const youtubeClient = google.youtube({
@@ -32,18 +35,6 @@ module.exports = memStore => {
   });
 
   return {
-    youtubeClient,
-    googleApiRouting: (app, io, memStore) => {
-      app.post('/store_auth_code', async (req, res) => {
-        memStore.code = req.body.code;
-        await oauth2Client.getToken(memStore.code);
-        console.log('got tokens');
-        const list = await youtubeClient.liveStreams.list({
-          part: ['id,snippet,contentDetails,status'], mine: true
-        });
-        res.write(JSON.stringify({error: null, list}));
-        res.end();
-      });
-    }
+    oauth2Client, youtubeClient
   }
 }

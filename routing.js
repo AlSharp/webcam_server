@@ -6,7 +6,7 @@ const WHITELISTED_DOMAINS = require('./config').whitelistedDomains;
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
-module.exports = (app, io, memStore) => {
+module.exports = (app, io, memStore, youtubeClient, obs) => {
   const corsOptions = {
     credentials: true,
     origin: (origin, cb) => {
@@ -22,7 +22,7 @@ module.exports = (app, io, memStore) => {
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
 
-  app.use('/', express.static(__dirname + '/webcam_ui_build'));
+  app.use('/webcam_ui', express.static(__dirname + '/webcam_ui_build'));
 
   app.get('/', async (req, res) => {
     console.log(memStore);
@@ -43,10 +43,6 @@ module.exports = (app, io, memStore) => {
 
   app.use('/authorize', express.static(__dirname + '/auth_app_build'));
 
-  app.get('/authorize', (req, res) => {
-    res.sendFile(path.join(__dirname, 'auth_app_build', 'index.html'));
-  })
-
   app.post('/api/end_session', async (req, res) => {
     const {sessionId} = req.body;
     if(memStore.sessionId === sessionId) {
@@ -64,5 +60,19 @@ module.exports = (app, io, memStore) => {
       res.write(JSON.stringify({status: false}));
       res.end();
     }
+  });
+
+  app.get('/get_status', (req, res) => {
+    const {
+      authorized,
+      OBSWebSocketConnected,
+      OBSWebSocketAuthenticated
+    } = memStore;
+    res.write(JSON.stringify({
+      authorized,
+      obsReady: OBSWebSocketConnected,
+      obsAuthReady: OBSWebSocketAuthenticated
+    }));
+    res.end();
   })
 }

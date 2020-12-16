@@ -2,6 +2,23 @@ import React, {useState, useEffect, useRef} from 'react';
 import CLIENT_ID from './secrets/clientId';
 import HOST from './secrets/server_address';
 
+const useMergeState = initialState => {
+  const [state, setState] = useState(initialState);
+  const setMergedState = nextState =>
+    setState(prevState => Object.assign({}, prevState, nextState));
+  return [state, setMergedState];
+}
+
+const getAuthStatus = async () => {
+  const response = await fetch(`${HOST}/auth_status`);
+
+  const res = await response.json();
+  if (res.error) {
+    throw res.error;
+  }
+  return res;
+}
+
 const signInCallback = async authResult => {
   if(authResult['code']) {
     const response = await fetch(`${HOST}/store_auth_code`, {
@@ -15,7 +32,7 @@ const signInCallback = async authResult => {
     });
     const res = await response.json();
     if (res.error) {
-      throw 'Could not authorize';
+      throw res.error;
     }
     return res;
   } else {
@@ -25,21 +42,36 @@ const signInCallback = async authResult => {
 
 const App = () => {
 
-  const [loaded, setLoaded] = useState(false);
-  const [initialized, setInitialized] = useState(false);
-  const [authorized, setAuthorized] = useState(false);
-  const [error, setError] = useState(null);
+  const [{
+    loaded = false,
+    initialized = false,
+    authorized = true,
+    error = null
+  }, setState] = useMergeState({
+    loaded: false,
+    initialized: false,
+    authorized: true,
+    error: null
+  })
 
   const auth2Ref = useRef();
 
   useEffect(() => {
-    const scriptTag = document.createElement('script');
-    scriptTag.src = 'https://apis.google.com/js/client:platform.js';
-    scriptTag.addEventListener('load', () => setLoaded(true));
-    document.head.appendChild(scriptTag);
+    getAuthStatus()
+      .then(res => setState({authorized: res.data.status}))
+      .catch(error => setState({error}))
   }, [])
 
   useEffect(() => {
+    if (authorized) return;
+    const scriptTag = document.createElement('script');
+    scriptTag.src = 'https://apis.google.com/js/client:platform.js';
+    scriptTag.addEventListener('load', () => setState({loaded: true}));
+    document.head.appendChild(scriptTag);
+  }, [authorized])
+
+  useEffect(() => {
+    if (authorized) return;
     if (!loaded) return;
     window.gapi.load('auth2', async () => {
       try {
@@ -48,32 +80,31 @@ const App = () => {
           scope: 'https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.force-ssl https://www.googleapis.com/auth/youtube.readonly'
         })
         console.log('auth2 initialized');
-        setInitialized(true);
+        setState({initialized: true})
       }
       catch(error) {
         console.log('auth2 init error', error)
       }
     });
-  }, [loaded]);
+  }, [authorized, loaded]);
 
   useEffect(() => {
+    if (authorized) return;
     if (!initialized) return;
     const signInBtn = document.createElement('button');
     signInBtn.addEventListener('click', () => {
       auth2Ref.current.grantOfflineAccess()
         .then(signInCallback)
-        .then(res => {
-          console.log('res: ', res);
-          setAuthorized(true);
-        })
-        .catch(error => setError())
+        .then(res => setState({authorized: true}))
+        .catch(error => setState({error}))
     });
     signInBtn.click();
-  }, [initialized]);
+  }, [authorized, initialized]);
 
   return (
     <div>
       <h1>Authorization page</h1>
+      <div>{authorized ? 'Authorized' : 'Not authorized'}</div>
       <div>{error || ''}</div>
     </div>
   )

@@ -16,6 +16,7 @@
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "googleapis": "^66.0.0",
+    "obs-websocket-js": "^4.0.2",
     "socket.io": "^2.3.0"
   },
   "devDependencies": {

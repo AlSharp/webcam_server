@@ -10,3 +10,22 @@ exports.getImacHostName = () => {
   console.log('imac-dev');
   return 'imac-dev';
 }
+
+exports.getWebcamStatus = memStore => {
+  const webcamStatus = [
+    'authorized',
+    ['liveBroadcastId', 'videoId'],
+    ['OBSWebSocketConnected', 'obsReady'],
+    ['OBSWebSocketAuthenticated', 'obsAuthReady'],
+    'streaming'
+  ]
+    .reduce((a, e) => {
+      if (typeof e === 'string') return {...a, [e]: memStore[e]}
+      if (typeof e === 'object') return {...a, [e[1]]: memStore[e[0]]}
+    }, {});
+  return webcamStatus;
+}
+
+exports.wait = ms => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
