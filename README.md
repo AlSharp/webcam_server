@@ -5,3 +5,5 @@
 - Youtube LiveStreaming API
 - ngrok
 - react
+- OBS studio
+- OBS-websockets-js
