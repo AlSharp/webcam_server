@@ -45,6 +45,7 @@ const App = () => {
     obsAuthReady = false,
     streaming = false,
     videoId = null,
+    count = null,
     error = null
   }, setState] = useMergeState({
     authorized: false,
@@ -52,6 +53,7 @@ const App = () => {
     obsAuthReady: false,
     streaming: false,
     videoId: null,
+    count: null,
     error: null
   })
 
@@ -67,6 +69,10 @@ const App = () => {
 
     socket.on('webcamStatus', ({authorized, videoId, obsReady, obsAuthReady, streaming}) => {
       setState({authorized, videoId, obsReady, obsAuthReady, streaming});
+    });
+
+    socket.on('waitCounter', count => {
+      setState({count});
     })
   }, []);
 
@@ -125,7 +131,7 @@ const App = () => {
         <iframe
           width="560"
           height="315"
-          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&livemonitor=1`}
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&livemonitor=1`}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
@@ -139,7 +145,7 @@ const App = () => {
         !obsReady && !obsAuthReady ?
         <h1>Camera is not ready</h1> :
         !streaming ?
-        <h1>Wait! Starting video stream...</h1> :
+        <h1>{`Wait! Starting video stream... ${count || ''}`}</h1> :
         null
       }
       {

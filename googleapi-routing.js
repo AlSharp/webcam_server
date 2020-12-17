@@ -64,7 +64,7 @@ module.exports = (app, io, memStore, oauth2Client, youtubeClient, obs) => {
         part: ['snippet,contentDetails,status'],
         resource: {
           snippet: {
-            title: 'IMAC WEBCAM LIVE',
+            title: 'BLOCKBERRYPI WEBCAM STREAM',
             scheduledStartTime: new Date()
           },
           contentDetails: {
@@ -98,7 +98,7 @@ module.exports = (app, io, memStore, oauth2Client, youtubeClient, obs) => {
 
       memStore.streaming = true;
 
-      await wait(8000);
+      await wait(15, io);
 
       io.of('webcam').emit('webcamStatus', getWebcamStatus(memStore))
       

@@ -7,8 +7,6 @@ const io = require('socket.io')(server, {
   perMessageDeflate: false
 });
 
-const {forceLogout} = require('./api');
-
 const {getWebcamStatus} = require('./utils');
 
 const {obsAddress, obsPassword} = require('./config');
@@ -66,30 +64,5 @@ const {oauth2Client, youtubeClient} = require('./youtube-client')(memStore, io);
 
 require('./routing')(app, io, memStore, youtubeClient, obs);
 require('./googleapi-routing')(app, io, memStore, oauth2Client, youtubeClient, obs);
+require('./webcam-client-routing')(app, io, memStore, youtubeClient, obs);
 
-io.of('webcam').on('connect', socket => {
-  console.log('connect socket with id ', socket.id);
-  if (!memStore.socketId) {
-    memStore.socketId = socket.id;
-  
-    socket.on('disconnect', async reason => {
-      console.log('reason: ', reason);
-      console.log('memStore: ', memStore);
-      if (reason === 'transport close' && memStore.sessionId) {
-        console.log('FORCE LOGOUT')
-        try {
-          const json = await forceLogout(memStore.sessionId);
-          if (json.status) {
-            memStore.sessionId = null;
-          } else {
-            console.log(json.error);
-          }
-        }
-        catch(error) {
-          console.log(error);
-        }
-      }
-      memStore.socketId = null;
-    })
-  }
-});

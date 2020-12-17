@@ -5,6 +5,7 @@ const {getSessionStatus} = require('./api');
 const WHITELISTED_DOMAINS = require('./config').whitelistedDomains;
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const {obsStopStreaming} = require('./obs');
 
 module.exports = (app, io, memStore, youtubeClient, obs) => {
   const corsOptions = {
@@ -31,7 +32,7 @@ module.exports = (app, io, memStore, youtubeClient, obs) => {
     } else {
       if (req.query) {
         const json = await getSessionStatus(req.query.sessionId, 'open');
-        if (json.status) {
+        if (json.data.status) {
           memStore.sessionId = req.query.sessionId;
           res.sendFile(path.join(__dirname, 'webcam_ui_build', 'index.html'));
         } else {
@@ -47,17 +48,21 @@ module.exports = (app, io, memStore, youtubeClient, obs) => {
     const {sessionId} = req.body;
     if(memStore.sessionId === sessionId) {
       const json = await getSessionStatus(sessionId, 'close');
-      if (json.status) {
+      if (json.data.status) {
         memStore.sessionId = null;
+        await youtubeClient.liveBroadcasts.delete({id: memStore.liveBroadcastId});
+        memStore.liveBroadcastId = null;
+        await obsStopStreaming(obs);
         io.of('webcam').emit('endSession');
-        res.write(JSON.stringify({status: true}));
+        res.write(JSON.stringify({status: 'webcam session ended'}));
         res.end();
       } else {
-        res.write(JSON.stringify({status: false}));
+        res.write(JSON.stringify({status: 'webcam session does not match'}));
         res.end();  
       }
+
     } else {
-      res.write(JSON.stringify({status: false}));
+      res.write(JSON.stringify({status: 'webcam session does not match'}));
       res.end();
     }
   });

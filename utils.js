@@ -26,6 +26,15 @@ exports.getWebcamStatus = memStore => {
   return webcamStatus;
 }
 
-exports.wait = ms => {
-  return new Promise(resolve => setTimeout(resolve, ms));
+exports.wait = (sec, io) => {
+  let counter = sec;
+  io.of('webcam').emit('waitCounter', counter);
+  const interval = setInterval(() => {
+    io.of('webcam').emit('waitCounter', counter - 1);
+    counter = counter - 1;
+  }, 1000)
+  return new Promise(resolve => setTimeout(() => {
+    clearInterval(interval);
+    return resolve();
+  }, sec * 1000));
 }
